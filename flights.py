@@ -43,48 +43,6 @@ flight_model_field = {
 
 
 
-flights_data = {
-
-    1 : {
-        'id': 1,
-        'number': 'LH123',
-        'number_passengers': 55,
-        'origin': 'Tallinn',
-        'destination': 'Berlin',
-        'departing_time': '2022/02/04 18:00',
-        'arrival_time': '2022/02/04 22:00',
-        'departing_airport': 'TTL airport',
-        'arrival_airport': 'Berlin airport',
-        'base_ticket_prices': 123
-    },
-    2: {
-        'id': 2,
-        'number': 'LH123',
-        'number_passengers': 55,
-        'origin': 'Tallinn',
-        'destination': 'Berlin',
-        'departing_time': '2022/03/04 18:00',
-        'arrival_time': '2022/03/04 22:00',
-        'departing_airport': 'TTL airport',
-        'arrival_airport': 'Berlin airport',
-        'base_ticket_prices': 435
-    },
-    3: {
-        'id': 3,
-        'number': 'TY323',
-        'number_passengers': 65,
-        'origin': 'Rio de Janeiro',
-        'destination': 'Paris',
-        'departing_time': '2022/05/07 18:00',
-        'arrival_time': '2022/02/04 22:00',
-        'departing_airport': 'TTL airport',
-        'arrival_airport': 'Berlin airport',
-        'base_ticket_prices': 545.645
-    }
-
-}
-
-
 flight_req = reqparse.RequestParser()
 flight_req.add_argument('number', type=str, required=True)
 flight_req.add_argument('number_passengers', type=int, required=True)
@@ -218,13 +176,18 @@ class Flight(Resource):
     
     def delete(self, flight_id):
         abort_if_flight_missing(flight_id)
-        del flights_data[flight_id]
+
+        flight = FlightModel.query.get(flight_id)
+
+        db.session.delete(flight)
+        db.session.commit()
 
         return '', 204
 
 
 
 class FlightUSD(Resource):
+    @marshal_with(flight_model_field)
     def get(self, flight_id):
         abort_if_flight_missing(flight_id)
 
@@ -232,12 +195,11 @@ class FlightUSD(Resource):
         currency_rates = resp.json()
         eur_usd = currency_rates['eur']['usd']
 
-        flight = flights_data[flight_id]
+        flight = FlightModel.query.get(flight_id)
 
         flight_usd = copy(flight)
 
-        flight_usd['base_ticket_prices'] = flight_usd['base_ticket_prices'] * eur_usd
-           
+        flight_usd.base_ticket_prices = flight_usd.base_ticket_prices * eur_usd
 
         return flight_usd
     
