@@ -15,8 +15,15 @@
             <thead>
                 <tr>
                     <th>ID</th>
+                    <th>Number</th>
                     <th>Origin</th>
                     <th>Destination</th>
+                    <th>Departure</th>
+                    <th>Arrival</th>
+                    <th>Dep_Airport</th>
+                    <th>Arr_Airport</th>
+                    <th>Passengers</th>
+                    <th>Ticket Price</th>
                 </tr>
             </thead>
             <tbody>
@@ -25,8 +32,15 @@
                 
                 <tr>
                     <td>{{f.id}}</td>
+                    <td>{{f.number}}</td>
                     <td>{{f.origin}}</td>
                     <td>{{f.destination}}</td>
+                    <td>{{f.departing_time}}</td>
+                    <td>{{f.arrival_time}}</td>
+                    <td>{{f.departing_airport}}</td>
+                    <td>{{f.arrival_airport}}</td>
+                    <td>{{f.number_passengers}}</td>
+                    <td>{{f.base_ticket_prices}}</td>
                 </tr>
 
                 {% endfor %}
