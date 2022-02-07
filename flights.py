@@ -6,11 +6,17 @@ from copy import copy
 from flask_sqlalchemy import SQLAlchemy
 from flasgger import Swagger
 import flasgger
+from flask_debugtoolbar import DebugToolbarExtension
 
 
 app = Flask(__name__)
 api = Api(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SQLALCHEMY_ECHO'] = True
+app.debug = True
+app.config['SECRET_KEY'] = 'dev'
+
+DebugToolbarExtension(app)
 db = SQLAlchemy(app)
 Swagger(app)
 
