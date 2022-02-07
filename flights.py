@@ -4,12 +4,15 @@ import random
 import requests
 from copy import copy
 from flask_sqlalchemy import SQLAlchemy
+from flasgger import Swagger
+import flasgger
+
 
 app = Flask(__name__)
 api = Api(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 db = SQLAlchemy(app)
-
+Swagger(app)
 
 
 class FlightModel(db.Model):
@@ -77,6 +80,13 @@ class FlightsList(Resource):
 
     @marshal_with(flight_model_field)
     def get(self):
+        """
+        returns all flights
+        ---
+        responses:
+            200:
+                description : list of flights
+        """
         result = FlightModel.query.all()
 
         return result
@@ -107,6 +117,17 @@ class FlightsList(Resource):
 class Flight(Resource):
     @marshal_with(flight_model_field)
     def get(self, flight_id):
+        """returns a flight
+        ---
+        parameters:
+            - name: flight_id
+              in: path
+              type: integer
+              required: true
+        responses:
+            200:
+                description: Get data related to one particular flight
+        """
         abort_if_flight_missing(flight_id)
         flight = FlightModel.query.get(flight_id)
 
