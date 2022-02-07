@@ -20,7 +20,9 @@ class FlightModel(db.Model):
     departing_time = db.Column(db.String(20), nullable=False)   
     arrival_time = db.Column(db.String(20), nullable=False)  
     departing_airport = db.Column(db.String(20), nullable=False) 
-    base_ticket_prices = db.Column(db.Float, nullable=False)   
+    base_ticket_prices = db.Column(db.Float, nullable=False)
+    arrival_airport = db.Column(db.String(20), nullable=False) 
+    number_passengers = db.Column(db.Integer, nullable=False)   
 
 
 db.create_all()
@@ -34,7 +36,9 @@ flight_model_field = {
     'departing_time': fields.String,
     'arrival_time': fields.String,
     'departing_airport': fields.String,
-    'base_ticket_prices': fields.Float
+    'arrival_airport': fields.String,
+    'base_ticket_prices': fields.Float,
+    'number_passengers': fields.Integer,
 }
 
 
@@ -105,7 +109,9 @@ flight_req_patch.add_argument('base_ticket_prices', type=float)
 
 
 def abort_if_flight_missing(flight_id):
-    if flight_id not in flights_data:
+    flight  = FlightModel.query.get(flight_id)
+
+    if not flight:
         abort(404, message='No flight found with this id')
 
 
@@ -128,7 +134,9 @@ class FlightsList(Resource):
             departing_time = new_flight_data['departing_time'],
             arrival_time = new_flight_data['arrival_time'],
             departing_airport = new_flight_data['departing_airport'],
-            base_ticket_prices = new_flight_data['base_ticket_prices']
+            arrival_airport = new_flight_data['arrival_airport'],
+            base_ticket_prices = new_flight_data['base_ticket_prices'],
+            number_passengers = new_flight_data['number_passengers']
         )
 
         db.session.add(new_flight)
@@ -139,29 +147,72 @@ class FlightsList(Resource):
     
 
 class Flight(Resource):
+    @marshal_with(flight_model_field)
     def get(self, flight_id):
         abort_if_flight_missing(flight_id)
-
-        flight = flights_data[flight_id]
+        flight = FlightModel.query.get(flight_id)
 
         return flight
     
+    @marshal_with(flight_model_field)
     def put(self, flight_id):
-        data = flight_req.parse_args()
-        flight = flights_data[flight_id]
+        abort_if_flight_missing(flight_id)
 
-        for field in data:
-            flight[field] = data[field]
+        data = flight_req.parse_args()
+
+        flight = FlightModel.query.get(flight_id)
+        
+        flight.number = data['number']
+        flight.origin = data['origin']
+        flight.destination = data['destination']
+        flight.departing_time = data['departing_time']
+        flight.arrival_time = data['arrival_time']
+        flight.departing_airport = data['departing_airport']
+        flight.arrival_airport = data['arrival_airport']
+        flight.base_ticket_prices = data['base_ticket_prices']
+        flight.number_passengers = data['number_passengers']
+
+        db.session.commit()
 
         return flight
     
+    @marshal_with(flight_model_field)
     def patch(self, flight_id):
+        abort_if_flight_missing(flight_id)
+        
         data = flight_req_patch.parse_args()
-        flight = flights_data[flight_id]
 
-        for field in data:
-            if data[field] is not None:
-                flight[field] = data[field]
+        flight = FlightModel.query.get(flight_id)
+        
+        if data['number']:
+            flight.number = data['number']
+        
+        if data['origin']:
+            flight.origin = data['origin']
+        
+        if data['destination']:
+            flight.destination = data['destination']
+        
+        if data['departing_time']:
+            flight.departing_time = data['departing_time']
+
+        if data['arrival_time']:
+            flight.arrival_time = data['arrival_time']
+
+        if data['departing_airport']:
+            flight.departing_airport = data['departing_airport']
+
+        if data['base_ticket_prices']:
+            flight.base_ticket_prices = data['base_ticket_prices']
+
+        if data['arrival_airport']:
+            flight.arrival_airport = data['arrival_airport']
+
+        if data['number_passengers']:
+            flight.number_passengers = data['number_passengers']
+
+
+        db.session.commit()
 
         return flight
     
