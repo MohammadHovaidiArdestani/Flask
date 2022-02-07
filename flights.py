@@ -1,82 +1,116 @@
-from locale import currency
-from flask import Flask, request, jsonify
-from flask_restful import Api, Resource, abort 
+from flask import Flask, request
+from flask_restful import Api, Resource, abort, reqparse
 import random
 import requests
-from copy import deepcopy
+from copy import copy
 
-# run the app properly
 app = Flask(__name__)
 api = Api(app)
 
+
+
 flights_data = {
-    1: {
-        "id": 1,
-        "number": "LH1234",
-        "neumber_passengers": 55,
-        "origin": "Hamburg",
-        "destination": "Stuttgart",
-        "departing_time": "2022/02/04 18:00",
-        "arrival_time": "2022/02/04 19:00",
-        "departing_airport": "HH_Airport",
-        "arrival_airport": "BL_Airport",
-        "base_ticket_prices" : {
-            "economy": 100,
-            "business": 200
-        }
+
+    1 : {
+        'id': 1,
+        'number': 'LH123',
+        'number_passengers': 55,
+        'origin': 'Tallinn',
+        'destination': 'Berlin',
+        'departing_time': '2022/02/04 18:00',
+        'arrival_time': '2022/02/04 22:00',
+        'departing_airport': 'TTL airport',
+        'arrival_airport': 'Berlin airport',
+        'base_ticket_prices': 123
     },
     2: {
-        "id": 2,
-        "number": "LH700",
-        "neumber_passengers": 550,
-        "origin": "TFS",
-        "destination": "LPA",
-        "departing_time": "2022/05/09 18:10",
-        "arrival_time": "2022/05/09 19:00",
-        "departing_airport": "TFS_Airport",
-        "arrival_airport": "LPA_Airport",
-        "base_ticket_prices" : {
-            "economy": 300,
-            "business": 200
-        }
+        'id': 2,
+        'number': 'LH123',
+        'number_passengers': 55,
+        'origin': 'Tallinn',
+        'destination': 'Berlin',
+        'departing_time': '2022/03/04 18:00',
+        'arrival_time': '2022/03/04 22:00',
+        'departing_airport': 'TTL airport',
+        'arrival_airport': 'Berlin airport',
+        'base_ticket_prices': 435
     },
+    3: {
+        'id': 3,
+        'number': 'TY323',
+        'number_passengers': 65,
+        'origin': 'Rio de Janeiro',
+        'destination': 'Paris',
+        'departing_time': '2022/05/07 18:00',
+        'arrival_time': '2022/02/04 22:00',
+        'departing_airport': 'TTL airport',
+        'arrival_airport': 'Berlin airport',
+        'base_ticket_prices': 545.645
+    }
+
 }
 
-def abort_if_id_missing(flight_id):
+
+flight_req = reqparse.RequestParser()
+flight_req.add_argument('number', type=str, required=True)
+flight_req.add_argument('number_passengers', type=int, required=True)
+flight_req.add_argument('origin', type=str, required=True)
+flight_req.add_argument('destination', type=str, required=True, help='Destination is required')
+flight_req.add_argument('departing_time', type=str, required=True)
+flight_req.add_argument('arrival_time', type=str, required=True)
+flight_req.add_argument('departing_airport', type=str, required=True)
+flight_req.add_argument('arrival_airport', type=str, required=True)
+flight_req.add_argument('base_ticket_prices', type=float, required=True)
+
+
+def abort_if_flight_missing(flight_id):
     if flight_id not in flights_data:
-        abort(404, message= "No flight fount with this id")
+        abort(404, message='No flight found with this id')
+
+
 class FlightsList(Resource):
     def get(self):
-        
-        #return flights_data
         return flights_data
-        #return flights_data[0]["number"]
-        #return flights_data[1]["base_ticket_prices"]["economy"]
+    
     def post(self):
-        new_flight = request.json
-        flight_id = random.randint(4,1000000)
-        new_flight["id"] = flight_id
+        new_flight = flight_req.parse_args()
+        flight_id = random.randint(4, 100000000) # this can generate repeated ids!!!!!
+        new_flight['id'] = flight_id
 
         flights_data[flight_id] = new_flight
-        #return {"message": "new flight added"}
+
         return new_flight, 201
+        
+    
 
 class Flight(Resource):
     def get(self, flight_id):
-        abort_if_id_missing(flight_id)
+        abort_if_flight_missing(flight_id)
 
         flight = flights_data[flight_id]
 
         return flight
     
     def put(self, flight_id):
-        data = request.json
-        flights_data[flight_id] = data
+        data = flight_req.parse_args()
+        flight = flights_data[flight_id]
 
-        return data
+        for field in data:
+            flight[field] = data[field]
+
+        return flight
+    
+    def delete(self, flight_id):
+        abort_if_flight_missing(flight_id)
+        del flights_data[flight_id]
+
+        return '', 204
+
+
+
 class FlightUSD(Resource):
     def get(self, flight_id):
-        abort_if_id_missing(flight_id)
+        abort_if_flight_missing(flight_id)
 
         resp = requests.get('https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/eur.json')
         currency_rates = resp.json()
@@ -84,18 +118,19 @@ class FlightUSD(Resource):
 
         flight = flights_data[flight_id]
 
-        flight_usd = deepcopy(flight)
+        flight_usd = copy(flight)
 
-        flight_usd['base_ticket_prices']['economy'] = flight_usd['base_ticket_prices']['economy'] * eur_usd
-        flight_usd['base_ticket_prices']['busines'] = flight_usd['base_ticket_prices']['business'] * eur_usd
+        flight_usd['base_ticket_prices'] = flight_usd['base_ticket_prices'] * eur_usd
            
 
         return flight_usd
+    
 
 
-api.add_resource(FlightsList, "/flights/")
-api.add_resource(FlightUSD, "/flights/usd/<int:flight_id>")
-api.add_resource(Flight, "/flights/<int:flight_id>")
+api.add_resource(FlightsList, '/flights/')
+api.add_resource(FlightUSD, '/flights/usd/<int:flight_id>')
+api.add_resource(Flight, '/flights/<int:flight_id>')
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     app.run(debug=True)
