@@ -3,10 +3,27 @@ from flask_restful import Api, Resource, abort, reqparse
 import random
 import requests
 from copy import copy
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 api = Api(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+db = SQLAlchemy(app)
 
+
+
+class FlightModel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    number = db.Column(db.String(10), nullable=False)
+    origin = db.Column(db.String(50), nullable=False)
+    destination = db.Column(db.String(50), nullable=False) 
+    departing_time = db.Column(db.String(20), nullable=False)   
+    arrival_time = db.Column(db.String(20), nullable=False)  
+    departing_airport = db.Column(db.String(20), nullable=False) 
+    base_ticket_prices = db.Column(db.Float, nullable=False)   
+
+
+db.create_all()
 
 
 flights_data = {
@@ -62,6 +79,17 @@ flight_req.add_argument('departing_airport', type=str, required=True)
 flight_req.add_argument('arrival_airport', type=str, required=True)
 flight_req.add_argument('base_ticket_prices', type=float, required=True)
 
+flight_req_patch = reqparse.RequestParser()
+flight_req_patch.add_argument('number', type=str)
+flight_req_patch.add_argument('number_passengers', type=int)
+flight_req_patch.add_argument('origin', type=str)
+flight_req_patch.add_argument('destination', type=str)
+flight_req_patch.add_argument('departing_time', type=str)
+flight_req_patch.add_argument('arrival_time', type=str)
+flight_req_patch.add_argument('departing_airport', type=str)
+flight_req_patch.add_argument('arrival_airport', type=str)
+flight_req_patch.add_argument('base_ticket_prices', type=float)
+
 
 def abort_if_flight_missing(flight_id):
     if flight_id not in flights_data:
@@ -70,14 +98,27 @@ def abort_if_flight_missing(flight_id):
 
 class FlightsList(Resource):
     def get(self):
-        return flights_data
+        result = FlightModel.query.all()
+
+        flights = [{'id': f.id, 'number': f.number} for f in result]
+
+        return flights
     
     def post(self):
-        new_flight = flight_req.parse_args()
-        flight_id = random.randint(4, 100000000) # this can generate repeated ids!!!!!
-        new_flight['id'] = flight_id
+        new_flight_data = flight_req.parse_args()
 
-        flights_data[flight_id] = new_flight
+        new_flight = FlightModel(
+            number = new_flight_data['number'],
+            origin = new_flight_data['origin'],
+            destination = new_flight_data['destination'],
+            departing_time = new_flight_data['departing_time'],
+            arrival_time = new_flight_data['arrival_time'],
+            departing_airport = new_flight_data['departing_airport'],
+            base_ticket_prices = new_flight_data['base_ticket_prices']
+        )
+
+        db.session.add(new_flight)
+        db.session.commit()
 
         return new_flight, 201
         
@@ -97,6 +138,16 @@ class Flight(Resource):
 
         for field in data:
             flight[field] = data[field]
+
+        return flight
+    
+    def patch(self, flight_id):
+        data = flight_req_patch.parse_args()
+        flight = flights_data[flight_id]
+
+        for field in data:
+            if data[field] is not None:
+                flight[field] = data[field]
 
         return flight
     
