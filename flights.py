@@ -1,5 +1,5 @@
 from flask import Flask, request
-from flask_restful import Api, Resource, abort, reqparse
+from flask_restful import Api, Resource, abort, reqparse, marshal_with, fields
 import random
 import requests
 from copy import copy
@@ -24,6 +24,19 @@ class FlightModel(db.Model):
 
 
 db.create_all()
+
+
+flight_model_field = {
+    'id': fields.Integer,
+    'number': fields.String,
+    'origin': fields.String,
+    'destination': fields.String,
+    'departing_time': fields.String,
+    'arrival_time': fields.String,
+    'departing_airport': fields.String,
+    'base_ticket_prices': fields.Float
+}
+
 
 
 flights_data = {
@@ -97,13 +110,14 @@ def abort_if_flight_missing(flight_id):
 
 
 class FlightsList(Resource):
+
+    @marshal_with(flight_model_field)
     def get(self):
         result = FlightModel.query.all()
 
-        flights = [{'id': f.id, 'number': f.number} for f in result]
-
-        return flights
+        return result
     
+    @marshal_with(flight_model_field)
     def post(self):
         new_flight_data = flight_req.parse_args()
 
