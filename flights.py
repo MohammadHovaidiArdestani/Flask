@@ -206,6 +206,24 @@ class Flight(Resource):
         return '', 204
 
 
+def predict_late_flight(flight): # 98% of flights do not get late
+
+    if flight.destination == 'Ukraine': # 100% of flights will be late
+        return True
+
+    prediction = random.choice([True, False])
+
+    return prediction
+
+class FlightPredictor(Resource):
+    def get(self, flight_id):
+        abort_if_flight_missing(flight_id)
+        flight = FlightModel.query.get(flight_id)
+
+        prediction = predict_late_flight(flight)
+
+        return {'prediction': prediction}
+
 
 class FlightUSD(Resource):
     @marshal_with(flight_model_field)
@@ -229,6 +247,7 @@ class FlightUSD(Resource):
 api.add_resource(FlightsList, '/flights/')
 api.add_resource(FlightUSD, '/flights/usd/<int:flight_id>')
 api.add_resource(Flight, '/flights/<int:flight_id>')
+api.add_resource(FlightPredictor, '/flights/late_flight/<int:flight_id>')
 
 
 if __name__ == '__main__':
