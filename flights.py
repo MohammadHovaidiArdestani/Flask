@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, render_template
 from flask_restful import Api, Resource, abort, reqparse, marshal_with, fields
 import random
 import requests
@@ -248,6 +248,13 @@ api.add_resource(FlightsList, '/flights/')
 api.add_resource(FlightUSD, '/flights/usd/<int:flight_id>')
 api.add_resource(Flight, '/flights/<int:flight_id>')
 api.add_resource(FlightPredictor, '/flights/late_flight/<int:flight_id>')
+
+
+@app.route('/')
+def webpage():
+    flights = FlightModel.query.all()
+    magic_word = 'Peace'
+    return render_template('webpage.html', flights=flights, magic_word=magic_word)
 
 
 if __name__ == '__main__':
